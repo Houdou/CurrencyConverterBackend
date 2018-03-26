@@ -5,6 +5,7 @@ const redis = require('redis');
 const request = require('request');
 const client = redis.createClient();
 
+// Promisify redis operation
 const {promisify} = require('util');
 const getAsync = promisify(client.get).bind(client);
 const setAsync = promisify(client.set).bind(client);
@@ -15,10 +16,26 @@ client.on("error", (err) => {
 
 const server = new express();
 
-const APP_ID = "4620e0f26b724018bcfede029e33df77";
+// API Configs
+const APP_ID = '4620e0f26b724018bcfede029e33df77';
+const CURRENCIES_API_URL = 'https://openexchangerates.org/api/currencies.json';
 const LATEST_API_URL = 'https://openexchangerates.org/api/latest.json';
 const HISTORY_API_URL = 'https://openexchangerates.org/api/historical/';
-const PORT = 3001;
+const PORT = +process.argv[2] || 80;
+
+const requestCurrencies = () => {
+	return new Promise((resolve, reject) => {
+		request(`${CURRENCIES_API_URL}`,
+			(err, api_res, body) => {
+				if(err)
+					reject(err);
+				else if(api_res.statusCode == 200)
+					resolve(body);
+				else
+					reject(new Error(`Unable to request currencies, ERR_CODE: ${api_res.statusCode}`));
+			});
+	});
+}
 
 // Request latest rates data
 const requestLatest = () => {
@@ -30,7 +47,7 @@ const requestLatest = () => {
 				else if(api_res.statusCode == 200)
 					resolve(body);
 				else
-					reject(new Error(`Unable to request api, ERR_CODE: ${api_res.statusCode}`));
+					reject(new Error(`Unable to request latest rates, ERR_CODE: ${api_res.statusCode}`));
 			});
 	});
 };
@@ -45,7 +62,7 @@ const requestHistory = (date) => {
 				else if(api_res.statusCode == 200)
 					resolve(body);
 				else
-					reject(new Error(`Unable to request api, ERR_CODE: ${api_res.statusCode}`));
+					reject(new Error(`Unable to request history rates, ERR_CODE: ${api_res.statusCode}`));
 			});
 	});
 };
@@ -59,12 +76,43 @@ const timeout = (time) => {
 	})
 };
 
+// Handle currencies request
+server.get('/api/currencies.json', (req, res) => {
+	const currencies_key = "CURRENCIES";
+	// Verify if cached rates are available
+	getAsync(currencies_key).then(redis_res => {
+		const is_cached = redis_res != null && redis_res !== "null";
+
+		if(is_cached) {
+			console.log(`Use cached ${currencies_key}`);
+			res.end(redis_res);
+		} else {
+			// Request data
+			Promise.race([requestCurrencies(), timeout(5000)])
+				.then((result) => {
+					// Cache the result
+					setAsync(currencies_key, result)
+						.then(redis_set_res => {
+							if(redis_set_res === "OK") {
+								console.log(`${currencies_key} cached.`);
+							}
+						});
+
+					res.end(result);
+				})
+				.catch((err) => {
+					console.error(err);
+				});
+		}
+	});
+});
+
 // Handle latest rates request
 server.get('/api/latest.json', (req, res) => {
-	let current_hour_key = new moment().format('YYYY-MM-DD:HH');
+	const current_hour_key = new moment().format('YYYY-MM-DD:HH');
 	// Try cache
 	getAsync(current_hour_key).then(redis_res => {
-		let is_cached = redis_res != null && redis_res !== "null";
+		const is_cached = redis_res != null && redis_res !== "null";
 
 		if(is_cached) {
 			console.log(`Use cached ${current_hour_key} rates`);
@@ -73,7 +121,7 @@ server.get('/api/latest.json', (req, res) => {
 			// Request data
 			Promise.race([requestLatest(), timeout(5000)])
 				.then((result) => {
-					// cache the result
+					// Cache the result
 					setAsync(current_hour_key, result)
 						.then(redis_set_res => {
 							if(redis_set_res === "OK") {
@@ -92,10 +140,10 @@ server.get('/api/latest.json', (req, res) => {
 
 // Handle history rates request
 server.get('/api/history/:date.json', (req, res) => {
-	let date_key = req.params.date;
+	const date_key = req.params.date;
 	// Try cache
 	getAsync(date_key).then(redis_res => {
-		let is_cached = redis_res != null && redis_res !== "null";
+		const is_cached = redis_res != null && redis_res !== "null";
 
 		if(is_cached) {
 			console.log(`Use cached ${date_key} rates`);
@@ -104,7 +152,7 @@ server.get('/api/history/:date.json', (req, res) => {
 			// Request data
 			Promise.race([requestHistory(date_key), timeout(5000)])
 				.then((result) => {
-					// cache the result
+					// Cache the result
 					setAsync(date_key, result)
 						.then(redis_set_res => {
 							if(redis_set_res === "OK") {
@@ -121,7 +169,7 @@ server.get('/api/history/:date.json', (req, res) => {
 	});
 })
 
-server.use(express.static(path.join(__dirname, '../public')));
+server.use('/', express.static(path.join(__dirname, './public')));
 
 server.listen(PORT, () => {
 	console.log('Currency converter backend on port: ' + PORT);
