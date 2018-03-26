@@ -3,7 +3,7 @@ const path = require('path');
 const moment = require('moment');
 const redis = require('redis');
 const request = require('request');
-const client = redis.createClient();
+const client = redis.createClient(process.env.REDIS_URL);
 
 // Promisify redis operation
 const {promisify} = require('util');
