@@ -21,7 +21,7 @@ const APP_ID = '4620e0f26b724018bcfede029e33df77';
 const CURRENCIES_API_URL = 'https://openexchangerates.org/api/currencies.json';
 const LATEST_API_URL = 'https://openexchangerates.org/api/latest.json';
 const HISTORY_API_URL = 'https://openexchangerates.org/api/historical/';
-const PORT = +process.argv[2] || 80;
+server.set('port', (process.env.PORT || 3000));
 
 const requestCurrencies = () => {
 	return new Promise((resolve, reject) => {
@@ -171,6 +171,6 @@ server.get('/api/history/:date.json', (req, res) => {
 
 server.use('/', express.static(path.join(__dirname, './public')));
 
-server.listen(PORT, () => {
-	console.log('Currency converter backend on port: ' + PORT);
+server.listen(server.get('port'), () => {
+	console.log('Currency converter backend on port: ' + server.get('port'));
 });
