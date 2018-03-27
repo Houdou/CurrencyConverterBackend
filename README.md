@@ -36,13 +36,17 @@ The solution is full stack.
 > Like what I usually do when learning new framework, I learn React by doing this project.
 
 ##### Business logic layer
-- Node.js for hosting app files and logic server as the middle layer.
+- Node.js for hosting app files and handling business logic
 - Redis for cache server
 
 > As the exchange rates will not change frequently, to reduce the data layer access, a redis server is used for caching the exchange rates previously requested.
 
 ##### Core data layer
 - [openexchangerates.org](http://openexchangerates.org) for the exchange rates data.
+
+##### Architectural
+I seperate the data source from the business logic server, so that the scalability is improved.
+Also, as mentioned above, the exchange rate data will not change frequently. Therefore, a caching server can help reducing the request to data server. The Node.js server will only request the data api if the exchange rate cache is not available for the requested time.
 
 ##### 3rd-party libraries
 - Front-end
