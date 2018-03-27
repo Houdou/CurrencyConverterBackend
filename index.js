@@ -23,6 +23,10 @@ const LATEST_API_URL = 'https://openexchangerates.org/api/latest.json';
 const HISTORY_API_URL = 'https://openexchangerates.org/api/historical/';
 server.set('port', (process.env.PORT || 3000));
 
+/**
+ * Request the list of currency available
+ * @return {Promise} List of currency in json or Error message
+ */
 const requestCurrencies = () => {
 	return new Promise((resolve, reject) => {
 		request(`${CURRENCIES_API_URL}`,
@@ -37,7 +41,10 @@ const requestCurrencies = () => {
 	});
 }
 
-// Request latest rates data
+/**
+ * Request latest rates data
+ * @return {Promise} Latest rates data in json or Error message
+ */
 const requestLatest = () => {
 	return new Promise((resolve, reject) => {
 		request(`${LATEST_API_URL}?app_id=${APP_ID}`,
@@ -53,6 +60,11 @@ const requestLatest = () => {
 };
 
 // Request history rates data
+/**
+ * Request historical rates on date
+ * @param  {string} date In format "YYYY-MM-DD"
+ * @return {Promise}      Historical rates in json or Error message
+ */
 const requestHistory = (date) => {
 	return new Promise((resolve, reject) => {
 		request(`${HISTORY_API_URL}${date}.json?app_id=${APP_ID}`,
@@ -67,7 +79,11 @@ const requestHistory = (date) => {
 	});
 };
 
-// Default timeout for the api request
+/**
+ * Timeout promise generator
+ * @param  {number} time Time(ms) to wait before timeout
+ * @return {Promise}      Timeout error message
+ */
 const timeout = (time) => {
 	return new Promise((resolve, reject) => {
 		setTimeout(() => {
