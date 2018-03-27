@@ -16,7 +16,7 @@ Create a single-page app that can
 	- You can use touchmove/mousewheel to scroll the list
 	- Click any row will add it to the currency list
 - You can edit any row of currency value. All the others will be re-calculated automatically
-- Double tapping any row of currency will set it to 100 for convenient
+- Double tapping any row of currency will set it to 100 for convenience
 - The currecy list will automatically save in local storage
 - Tap the top-left calendar icon to change date to view historical exchange rate
 - Tap the top-right refeash icon to update latest exchange rate
